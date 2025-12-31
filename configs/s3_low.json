@@ -1,0 +1,93 @@
+{
+    "time": {
+        "episode_length": 240,
+        "volatility_window": 6,
+        "supply_lag": 3
+    },
+    "price_dynamics": {
+        "gamma": 0.2,
+        "noise_std": 0.02
+    },
+    "demand": {
+        "alpha_0": 0.0,
+        "alpha_1": 0.5,
+        "alpha_2": 1.0,
+        "trend_eta": 0.8
+    },
+    "supply": {
+        "beta": 0.3
+    },
+    "training": {
+        "timesteps": 30000
+    },
+    "ppo_param_bounds": {
+        "learning_rate": {
+            "min": 0.00005,
+            "max": 0.0002
+        },
+        "entropy_coefficient": {
+            "min": 0.001,
+            "max": 0.008
+        },
+        "value_loss_coefficient": {
+            "min": 0.4,
+            "max": 0.8
+        },
+        "clip_range": {
+            "min": 0.15,
+            "max": 0.25
+        }
+    },
+    "reward_param_bounds": {
+        "imbalance_penalty_lambda": {
+            "min": 0.05,
+            "max": 0.3
+        },
+        "action_smoothness_mu": {
+            "min": 0.02,
+            "max": 0.12
+        }
+    },
+    "action_bound_bounds": {
+        "credit_delta_max": {
+            "min": 0.08,
+            "max": 0.2
+        },
+        "supply_push_max": {
+            "min": 0.3,
+            "max": 0.8
+        },
+        "friction_max": {
+            "min": 0.15,
+            "max": 0.45
+        }
+    },
+    "evolution": {
+        "population_size": 12,
+        "elite_fraction": 0.2,
+        "tournament_size": 3,
+        "mutation_std": {
+            "learning_rate": 0.3,
+            "entropy_coefficient": 0.01,
+            "value_loss_coefficient": 0.1,
+            "clip_range": 0.05,
+            "imbalance_penalty_lambda": 0.05,
+            "action_smoothness_mu": 0.02,
+            "credit_delta_max": 0.04,
+            "supply_push_max": 0.08,
+            "friction_max": 0.04
+        }
+    },
+    "seeds": {
+        "env_train_seed": 2001,
+        "env_eval_seeds": [
+            213,
+            215,
+            482,
+            567,
+            568
+        ],
+        "rl_seed": 1920,
+        "ec_seed": 1923
+    }
+}

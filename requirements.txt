@@ -1,0 +1,13 @@
+# Core numerical
+numpy
+scipy
+
+# Reinforcement Learning
+gymnasium
+stable-baselines3
+
+# Data handling
+pandas
+
+# Utilities
+tqdm>=4.66,<5.0
