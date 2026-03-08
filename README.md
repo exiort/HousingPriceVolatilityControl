@@ -109,3 +109,9 @@ Ensures total experimental reproducibility.
 * `env_eval_seeds` (Array of Integers): A list of different seeds used to evaluate the robustness of a trained policy across unseen market trajectories. *Example: [213, 215, 482, 567, 568]*
 * `rl_seed` (Integer): Seed for PPO network initialization and action sampling. *Example: 1920*
 * `ec_seed` (Integer): Seed governing the genetic algorithm's crossover and mutation operations. *Example: 1923*
+
+---
+
+## 📜 License
+
+This project is licensed under the MIT License. Copyright (c) 2026 Buğrahan İmal. You are free to use, copy, modify, merge, publish, and distribute this software as per the license conditions.
