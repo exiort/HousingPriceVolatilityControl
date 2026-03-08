@@ -1,197 +1,111 @@
-# Housing Volatility Control (RL + EC)
+# HousingPriceVolatilityControl
 
-A reinforcement learning (RL) + evolutionary computation (EC) system for controlling housing market price volatility.
+A hybrid Evolutionary Computation (EC) and Reinforcement Learning (RL) framework designed to control and mitigate housing price volatility. Rather than attempting to forecast prices, this project formulates housing market regulation as a continuous control problem. An RL agent indirectly influences price dynamics within a stochastic environment through macroeconomic levers: credit conditions, supply incentives, and market frictions.
 
-## Overview
+## About The Project
 
-This project implements a control system that uses PPO (Proximal Policy Optimization) to learn policies for minimizing rolling house price volatility. The system evolves hyperparameters, reward coefficients, and action bounds using a genetic algorithm to optimize performance.
+This repository provides a controlled simulation environment that captures essential demand-supply imbalances and delayed policy effects in housing markets. By jointly optimizing policy parameters using policy gradient methods (PPO) and evolutionary search, the framework discovers robust policy configurations capable of minimizing rolling price volatility without relying on direct price-setting interventions.
 
-**Key Features:**
-- 5D continuous state space (log price, return, rolling volatility, imbalance, credit tightness)
-- 3D continuous action space (credit policy, supply push, market friction)
-- Fixed MLP architecture (2×64, tanh) with evolved PPO hyperparameters
-- (μ+λ) genetic algorithm with elitism and tournament selection
-- Reproducible multi-seed evaluation
+## Features
 
-
-## Usage
-
-### Running a Simulation
-
-```bash
-python main.py <config_path>
-```
-
-**Example:**
-```bash
-python main.py my_config.json
-```
-
-### Configuration File
-
-The simulation requires a JSON configuration file. See the specification for the complete config schema.
-
-**Minimal example:**
-```json
-{
-  "time": {
-    "episode_length": 240,
-    "volatility_window": 6,
-    "supply_lag": 3
-  },
-  "price_dynamics": {
-    "gamma": 0.2,
-    "noise_std": 0.02
-  },
-  "demand": {
-    "alpha_0": 0.0,
-    "alpha_1": 0.5,
-    "alpha_2": 1.0,
-    "trend_eta": 0.8
-  },
-  "supply": {
-    "beta": 0.3
-  },
-  "training": {
-    "timesteps": 200000
-  },
-  "ppo_param_bounds": { ... },
-  "reward_param_bounds": { ... },
-  "action_bound_bounds": { ... },
-  "evolution": { ... },
-  "seeds": {
-    "env_train_seed": 42,
-    "env_eval_seeds": [101, 202, 303],
-    "rl_seed": 1234,
-    "ec_seed": 5678
-  }
-}
-```
-
-## Output Structure
-
-Each simulation creates a timestamped directory:
-
-```
-run_YYYYMMDD_HHMMSS/
-├── config.json              # Copy of input configuration
-├── seeds.json               # Seed record for reproducibility
-├── training_summary.csv     # All individuals and their fitness
-├── evaluation_summary.csv   # Mean volatility per eval seed
-├── train_timeseries.csv     # Best individual trajectory on train seed
-└── eval_timeseries.csv      # Trajectories on all eval seeds
-```
-
-### CSV Schemas
-
-**training_summary.csv:**
-```
-generation,individual_id,fitness,learning_rate,entropy_coefficient,
-value_loss_coefficient,clip_range,imbalance_penalty_lambda,
-action_smoothness_mu,max_credit_delta,max_supply_push,max_friction
-```
-
-**evaluation_summary.csv:**
-```
-eval_seed,mean_rolling_vol
-```
-
-**train_timeseries.csv:**
-```
-episode,timestep,log_price,return,rolling_volatility,imbalance_z,
-credit_tightness,action_credit_delta,action_supply_push,action_friction,reward
-```
-
-**eval_timeseries.csv:**
-```
-eval_seed,episode,timestep,log_price,return,rolling_volatility,imbalance_z,
-credit_tightness,action_credit_delta,action_supply_push,action_friction,reward
-```
+* **Hybrid Optimization Engine:** Combines Reinforcement Learning (Proximal Policy Optimization via `stable-baselines3`) with an Evolutionary Algorithm to evolve hyperparameters, reward structures, and action bounds simultaneously.
+* **Stochastic Housing Environment:** A custom `gymnasium` environment simulating housing market mechanics, including delayed supply responses, demand trends, and structural market noise.
+* **Multi-Channel Policy Control:** The agent regulates the market using three distinct continuous action channels:
+  * *Credit Conditions:* Adjusting borrowing ease.
+  * *Supply Incentives:* Pushing housing supply allocations.
+  * *Market Frictions:* Imposing transaction costs or regulatory drag.
+* **Configuration-Driven:** All market dynamics, RL bounds, evolutionary parameters, and random seeds are fully specified via JSON configuration files to ensure exact reproducibility across experiments.
 
 ## Project Structure
 
-```
-src/
-├── environment/        # Housing market environment
-│   ├── housing_env.py  # Main Gymnasium environment
-│   ├── dynamics.py     # Market dynamics (demand, supply, price)
-│   ├── state.py        # State tracking and volatility
-│   └── reward.py       # Reward function
-├── evolution/          # Genetic algorithm
-│   ├── individual.py   # Parameter representation
-│   ├── genetic_ops.py  # Selection and mutation
-│   └── population.py   # Population management
-├── training/           # RL + EC training
-│   ├── ppo_trainer.py  # PPO wrapper
-│   ├── fitness.py      # Fitness evaluation
-│   └── pipeline.py     # RL + EC integration
-├── evaluation/         # Multi-seed evaluation
-│   └── evaluator.py    # Final evaluation
-├── output/             # Output management
-│   ├── directory.py    # Run directory creation
-│   └── csv_writer.py   # CSV output writers
-└── utils/              # Utilities
-    ├── config.py       # Configuration loading
-    └── seeding.py      # Seed management
-```
+* `main.py`: Entry point for executing the training and evaluation pipeline.
+* `configs/`: Contains JSON configuration files (e.g., `base_config.json`, `s1_high.json`, `s2_aggresive.json`).
+* `src/`
+  * `environment/`: Core simulation logic (`housing_env.py`, `dynamics.py`, `state.py`, `reward.py`).
+  * `training/`: RL setup, fitness evaluation, and the PPO trainer.
+  * `evolution/`: Genetic algorithm components (`population.py`, `individual.py`, `genetic_ops.py`).
+  * `evaluation/`: Post-training policy evaluation modules.
+  * `output/`: Handlers for saving experiment metrics and CSV data.
+  * `utils/`: Configuration parsers and global seeding utilities.
 
-## Seed Policy
+## Installation
 
-The system uses **4 independent seeds** for complete reproducibility:
+1. Ensure you have Python 3.8+ installed.
+2. Clone the repository.
+3. Install the required dependencies:
 
-1. **env_train_seed**: Fixed environment seed for all training
-2. **env_eval_seeds**: List of seeds for final evaluation only
-3. **rl_seed**: PPO algorithm seed
-4. **ec_seed**: Genetic algorithm seed
+    pip install -r requirements.txt
 
-**Critical:** Training ALWAYS uses `env_train_seed`. Evaluation seeds are used ONLY for final multi-seed testing.
+    **Dependencies Include:**
+    * `numpy`, `scipy`, `pandas` (Numerical and data operations)
+    * `gymnasium` (Environment API)
+    * `stable-baselines3` (Reinforcement learning algorithms)
+    * `tqdm` (Progress tracking)
 
-## Mathematical Framework
+## Usage
 
-### Environment Dynamics
+To run the training and evolution pipeline, you **must** provide a configuration file. Execute the `main.py` script and pass the path to your desired JSON configuration file as an argument:
 
-**Demand:**
-```
-D_t = α₀ + α₁·E[r_t] − α₂·c_t
-where E[r_t] = η·r_{t-1}
-```
+    python main.py configs/base_config.json
 
-**Supply:**
-```
-π_t = π_{t-1} + a_s  (pipeline)
-S_t = β·π_{t-k}      (actual supply, k periods lag)
-```
+Upon execution, the system will initialize the population, run the evolutionary RL pipeline for the specified number of generations, and output performance metrics (like fitness, rolling volatility, and policy behaviors) to the designated output directories.
 
-**Imbalance & Price:**
-```
-z_t = D_t − S_t
-ẑ_t = z_t·(1 − a_f)  (friction-adjusted)
-p_{t+1} = p_t + γ·ẑ_t + ε_t
-```
+## Configuration Parameters Guide
 
-**Reward:**
-```
-R_t = −σ_t − λ·|z_t| − μ·||a_t − a_{t-1}||₂
-```
+All evolutionary runs and environment setups are strictly controlled by a configuration file. Below is an exhaustive breakdown of all parameters required in the configuration, their scopes, and examples (based on `base_config.json`).
 
-### Fitness Metric
+### 1. `time` (Object)
+Controls the temporal structure and memory of the simulation environment.
+* `episode_length` (Integer): The total number of timesteps per simulation episode. *Example: 240*
+* `volatility_window` (Integer): The rolling window size used to calculate the target price volatility. *Example: 6*
+* `supply_lag` (Integer): The delay (in timesteps) between a supply incentive action and actual market delivery. *Example: 3*
 
-Fitness = Mean rolling volatility (lower is better)
+### 2. `price_dynamics` (Object)
+Defines the inherent mathematical behavior of the market prices.
+* `gamma` (Float): The mean-reversion or base structural drift coefficient for prices. *Example: 0.2*
+* `noise_std` (Float): Standard deviation of the exogenous stochastic shocks applied to the market. *Example: 0.02*
 
-```
-J = (1/T)·Σ σ_t
-```
+### 3. `demand` (Object)
+Parameters defining how housing demand reacts to market state and agent actions.
+* `alpha_0` (Float): Baseline intrinsic demand. *Example: 0.0*
+* `alpha_1` (Float): Demand sensitivity to credit conditions. *Example: 0.5*
+* `alpha_2` (Float): Demand sensitivity to market frictions. *Example: 1.0*
+* `trend_eta` (Float): The momentum or persistence of demand trends over time. *Example: 0.8*
 
-## Design Principles
+### 4. `supply` (Object)
+* `beta` (Float): The baseline sensitivity of the market to new housing supply. *Example: 0.3*
 
-1. **Control, not prediction**: Agent controls policies, not prices directly
-2. **RL + EC always together**: Hyperparameters evolved during training
-3. **Simulation-analysis separation**: This project only generates data
-4. **Strict reproducibility**: 4 independent seeds, fixed architecture
-5. **No interpretation**: Direct implementation of specification
+### 5. `training` (Object)
+* `timesteps` (Integer): The total number of PPO environment interaction steps allocated per individual in a generation. *Example: 30000*
 
-## Notes
+### 6. `ppo_param_bounds` (Object)
+Defines the minimum and maximum boundaries for the evolutionary algorithm to search for optimal PPO hyperparameters. Each sub-object requires a `min` and `max` float value.
+* `learning_rate`: Step size for the optimizer. *Example: {"min": 0.00005, "max": 0.0002}*
+* `entropy_coefficient`: Promotes exploration by penalizing deterministic policies. *Example: {"min": 0.005, "max": 0.03}*
+* `value_loss_coefficient`: The weight of the value function loss in the total objective. *Example: {"min": 0.4, "max": 0.8}*
+* `clip_range`: The PPO clipping parameter limiting policy updates. *Example: {"min": 0.15, "max": 0.25}*
 
-- This is a simulation-only project. Analysis tools are separate.
-- The evolved parameters are specific to the training seed and configuration.
-- Episode length and volatility window affect rolling volatility calculations.
+### 7. `reward_param_bounds` (Object)
+Defines the search space for evolving the agent's reward function components.
+* `imbalance_penalty_lambda`: Penalty weight applied when supply and demand are heavily misaligned. *Example: {"min": 0.05, "max": 0.3}*
+* `action_smoothness_mu`: Penalty weight penalizing high-frequency or erratic policy adjustments (encourages smooth control). *Example: {"min": 0.02, "max": 0.12}*
+
+### 8. `action_bound_bounds` (Object)
+Sets the evolutionary search space for the absolute maximum strength of the agent's interventions.
+* `credit_delta_max`: Maximum permissible change to credit conditions per step. *Example: {"min": 0.08, "max": 0.2}*
+* `supply_push_max`: Maximum allowable supply incentive intervention. *Example: {"min": 0.3, "max": 0.8}*
+* `friction_max`: Maximum level of market friction the agent can apply. *Example: {"min": 0.15, "max": 0.45}*
+
+### 9. `evolution` (Object)
+Configures the Genetic Algorithm responsible for outer-loop optimization.
+* `population_size` (Integer): Number of RL agents in a single generation. *Example: 12*
+* `elite_fraction` (Float): The percentage of top-performing individuals automatically carried over to the next generation. *Example: 0.2*
+* `tournament_size` (Integer): Number of individuals randomly selected for tournament mating selection. *Example: 3*
+* `mutation_std` (Object): The standard deviation for Gaussian mutations applied to an offspring's genome. Requires keys matching the evolved parameters (e.g., `learning_rate`, `entropy_coefficient`, `action_smoothness_mu`, `supply_push_max`). *Example: {"learning_rate": 0.3, "friction_max": 0.04, ...}*
+
+### 10. `seeds` (Object)
+Ensures total experimental reproducibility.
+* `env_train_seed` (Integer): Random seed used for the environment during the training phase. *Example: 2001*
+* `env_eval_seeds` (Array of Integers): A list of different seeds used to evaluate the robustness of a trained policy across unseen market trajectories. *Example: [213, 215, 482, 567, 568]*
+* `rl_seed` (Integer): Seed for PPO network initialization and action sampling. *Example: 1920*
+* `ec_seed` (Integer): Seed governing the genetic algorithm's crossover and mutation operations. *Example: 1923*
